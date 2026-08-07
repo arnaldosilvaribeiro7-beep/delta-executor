@@ -1,5 +1,5 @@
--- NOVO SCRIPT - LINEAR DASHBOARD (TELA DEITADA / MÓVEL / MINIMIZÁVEL)
-print("Linear Dashboard: Visual Neutro & Interface Otimizada")
+-- LINEAR DASHBOARD - BIG MENU & FIXED PHYSICS
+print("Menu Ampliado e Física Corrigida")
 
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
@@ -18,7 +18,7 @@ local LockAtivado = false
 local ShiftLockAtivado = false
 local ESPAtivado = false
 
-local VelocidadeVoo = 50
+local VelocidadeVoo = 60
 local ForcaGruda = 0.98
 local AlvoAtual = nil
 local MovendoTela = false
@@ -26,7 +26,7 @@ local MovendoTela = false
 local bodyVel, bodyGyro
 
 -- =======================================================
--- 1. VOO (FLY)
+-- 1. SISTEMA DE VOO (FLY REAL)
 -- =======================================================
 local function AtivarVoo()
     local char = localPlayer.Character
@@ -63,13 +63,13 @@ local function CriarESP(plr)
             local bbg = Instance.new("BillboardGui")
             bbg.Name = "LinearESP"
             bbg.AlwaysOnTop = true
-            bbg.Size = UDim2.new(0, 7, 0, 7)
+            bbg.Size = UDim2.new(0, 8, 0, 8)
             bbg.Enabled = ESPAtivado
             bbg.Parent = root
 
             local pnt = Instance.new("Frame", bbg)
             pnt.Size = UDim2.new(1, 0, 1, 0)
-            pnt.BackgroundColor3 = Color3.fromRGB(0, 120, 215) -- Azul sóbrio (Sem Neon)
+            pnt.BackgroundColor3 = Color3.fromRGB(0, 120, 215)
             Instance.new("UICorner", pnt).CornerRadius = UDim.new(1, 0)
         end
     end
@@ -91,7 +91,7 @@ local function ToggleESP(estado)
 end
 
 -- =======================================================
--- 3. TOQUE NA TELA (MOBILE SENS)
+-- 3. SENSIBILIDADE E TOQUE MOBILE
 -- =======================================================
 UserInputService.TouchStarted:Connect(function() MovendoTela = true end)
 UserInputService.TouchEnded:Connect(function() MovendoTela = false end)
@@ -100,13 +100,22 @@ UserInputService.TouchEnded:Connect(function() MovendoTela = false end)
 -- 4. MOTORES PRINCIPAIS (PHYSICS & RENDER)
 -- =======================================================
 
--- STEPPED: Física, Anti-Ragdoll, Noclip e Fly
+-- STEPPED: Física, Anti-Ragdoll, Noclip Real e Movimento do Fly
 RunService.Stepped:Connect(function()
     local char = localPlayer.Character
     local hum = char and char:FindFirstChild("Humanoid")
     local root = char and char:FindFirstChild("HumanoidRootPart")
 
     if hum and root then
+        -- NOCLIP REAL (Desativa colisão de todas as partes do corpo)
+        if NoclipAtivado or FlyAtivado then
+            for _, part in pairs(char:GetDescendants()) do
+                if part:IsA("BasePart") then 
+                    part.CanCollide = false 
+                end
+            end
+        end
+
         -- ANTI-RAGDOLL
         if AntiRagdollAtivado then
             hum.PlatformStand = false
@@ -121,19 +130,16 @@ RunService.Stepped:Connect(function()
             end
         end
 
-        -- NOCLIP
-        if NoclipAtivado then
-            for _, part in pairs(char:GetDescendants()) do
-                if part:IsA("BasePart") then part.CanCollide = false end
-            end
-        end
-
-        -- VOO (Movimentação)
+        -- VOO REAL (Empurra na direção da câmera ao mover o analógico)
         if FlyAtivado and bodyVel and bodyGyro then
             bodyGyro.CFrame = Cam.CFrame
             local moveDir = hum.MoveDirection
+            
             if moveDir.Magnitude > 0 then
-                bodyVel.Velocity = Cam.CFrame:VectorToWorldSpace(CFrame.new(0, 0, -1).VectorToWorldSpace(moveDir)) * VelocidadeVoo
+                -- Calcula direção no espaço tridimensional da câmera
+                local camCFrame = Cam.CFrame
+                local direction = (camCFrame.RightVector * moveDir.X) + (camCFrame.LookVector * -moveDir.Z)
+                bodyVel.Velocity = direction.Unit * VelocidadeVoo
             else
                 bodyVel.Velocity = Vector3.zero
             end
@@ -161,7 +167,7 @@ RunService.RenderStepped:Connect(function()
         hum.AutoRotate = true
     end
 
-    -- AIM BOT SUPREMO (Destrava ao mover a câmera)
+    -- AIM BOT SUPREMO (Destrava ao mexer na tela)
     if LockAtivado then
         if MovendoTela then
             AlvoAtual = nil
@@ -197,115 +203,114 @@ RunService.RenderStepped:Connect(function()
 end)
 
 -- =======================================================
--- 5. INTERFACE DASHBOARD (TELA DEITADA / MÓVEL / MINIMIZÁVEL)
+-- 5. INTERFACE DASHBOARD (AMPLIADA & MÓVEL)
 -- =======================================================
 local ScreenGui = Instance.new("ScreenGui", localPlayer.PlayerGui)
 ScreenGui.ResetOnSpawn = false
 
--- JANELA PRINCIPAL (Design Horizontal Otimizado para Landscape)
+-- JANELA PRINCIPAL BEM MAIOR
 local MainFrame = Instance.new("Frame", ScreenGui)
-MainFrame.Size = UDim2.new(0, 210, 0, 240)
-MainFrame.Position = UDim2.new(0.05, 0, 0.15, 0) -- Posicionado lateralmente para não atrapalhar a visão na horizontal
-MainFrame.BackgroundColor3 = Color3.fromRGB(18, 18, 20) -- Dark Cinza fosco (Sem cores vibrantes)
+MainFrame.Size = UDim2.new(0, 280, 0, 340)
+MainFrame.Position = UDim2.new(0.05, 0, 0.1, 0)
+MainFrame.BackgroundColor3 = Color3.fromRGB(18, 18, 20)
 MainFrame.BorderSizePixel = 0
 MainFrame.Active = true
 MainFrame.Draggable = true
 
 local Corner = Instance.new("UICorner", MainFrame)
-Corner.CornerRadius = UDim.new(0, 8)
+Corner.CornerRadius = UDim.new(0, 10)
 
 local Stroke = Instance.new("UIStroke", MainFrame)
-Stroke.Color = Color3.fromRGB(38, 38, 42)
-Stroke.Thickness = 1
+Stroke.Color = Color3.fromRGB(40, 40, 45)
+Stroke.Thickness = 1.2
 
--- CABEÇALHO / TÍTULO COM BOTÃO MINIMIZAR
+-- CABEÇALHO COM BOTÃO MINIMIZAR
 local Header = Instance.new("Frame", MainFrame)
-Header.Size = UDim2.new(1, 0, 0, 32)
+Header.Size = UDim2.new(1, 0, 0, 40)
 Header.BackgroundTransparency = 1
 
 local Title = Instance.new("TextLabel", Header)
 Title.Size = UDim2.new(0.7, 0, 1, 0)
-Title.Position = UDim2.new(0, 10, 0, 0)
-Title.Text = "LINEAR DASH"
+Title.Position = UDim2.new(0, 14, 0, 0)
+Title.Text = "LINEAR DASHBOARD"
 Title.Font = Enum.Font.GothamBold
-Title.TextSize = 10
-Title.TextColor3 = Color3.fromRGB(160, 160, 170)
+Title.TextSize = 12
+Title.TextColor3 = Color3.fromRGB(180, 180, 190)
 Title.TextXAlignment = Enum.TextXAlignment.Left
 Title.BackgroundTransparency = 1
 
--- BOTÃO DE MINIMIZAR (_)
 local BtnMinimize = Instance.new("TextButton", Header)
-BtnMinimize.Size = UDim2.new(0, 24, 0, 24)
-BtnMinimize.Position = UDim2.new(1, -30, 0.5, -12)
+BtnMinimize.Size = UDim2.new(0, 30, 0, 30)
+BtnMinimize.Position = UDim2.new(1, -38, 0.5, -15)
 BtnMinimize.Text = "–"
 BtnMinimize.Font = Enum.Font.GothamBold
-BtnMinimize.TextSize = 14
-BtnMinimize.TextColor3 = Color3.fromRGB(160, 160, 170)
+BtnMinimize.TextSize = 16
+BtnMinimize.TextColor3 = Color3.fromRGB(180, 180, 190)
 BtnMinimize.BackgroundColor3 = Color3.fromRGB(28, 28, 32)
 BtnMinimize.BorderSizePixel = 0
-Instance.new("UICorner", BtnMinimize).CornerRadius = UDim.new(0, 4)
+Instance.new("UICorner", BtnMinimize).CornerRadius = UDim.new(0, 6)
 
 local Divider = Instance.new("Frame", MainFrame)
-Divider.Size = UDim2.new(1, -20, 0, 1)
-Divider.Position = UDim2.new(0, 10, 0, 32)
-Divider.BackgroundColor3 = Color3.fromRGB(32, 32, 36)
+Divider.Size = UDim2.new(1, -28, 0, 1)
+Divider.Position = UDim2.new(0, 14, 0, 40)
+Divider.BackgroundColor3 = Color3.fromRGB(35, 35, 40)
 Divider.BorderSizePixel = 0
 
 -- CONTAINER DOS BOTÕES
 local Container = Instance.new("Frame", MainFrame)
-Container.Size = UDim2.new(1, -16, 1, -40)
-Container.Position = UDim2.new(0, 8, 0, 36)
+Container.Size = UDim2.new(1, -24, 1, -54)
+Container.Position = UDim2.new(0, 12, 0, 48)
 Container.BackgroundTransparency = 1
 
 local UIList = Instance.new("UIListLayout", Container)
-UIList.Padding = UDim.new(0, 4)
+UIList.Padding = UDim.new(0, 6)
 
--- LÓGICA DE MINIMIZAR / EXPANDIR
+-- MINIMIZAR / EXPANDIR
 local Minimizado = false
 BtnMinimize.MouseButton1Click:Connect(function()
     Minimizado = not Minimizado
     if Minimizado then
         Container.Visible = false
         Divider.Visible = false
-        MainFrame.Size = UDim2.new(0, 210, 0, 32)
+        MainFrame.Size = UDim2.new(0, 280, 0, 40)
         BtnMinimize.Text = "+"
     else
-        MainFrame.Size = UDim2.new(0, 210, 0, 240)
+        MainFrame.Size = UDim2.new(0, 280, 0, 340)
         Container.Visible = true
         Divider.Visible = true
         BtnMinimize.Text = "–"
     end
 end)
 
--- CRIADOR DE BOTÕES TONS FOSCOS / SOBRIOS
+-- CRIADOR DE BOTÕES AMPLIADOS
 local function CriarBotaoLinear(texto, callback)
     local Button = Instance.new("TextButton", Container)
-    Button.Size = UDim2.new(1, 0, 0, 28)
+    Button.Size = UDim2.new(1, 0, 0, 40) -- Botão mais alto e fácil de tocar
     Button.BackgroundColor3 = Color3.fromRGB(25, 25, 28)
     Button.AutoButtonColor = false
     Button.Text = ""
     Button.BorderSizePixel = 0
 
     local BtnCorner = Instance.new("UICorner", Button)
-    BtnCorner.CornerRadius = UDim.new(0, 5)
+    BtnCorner.CornerRadius = UDim.new(0, 6)
 
     local BtnStroke = Instance.new("UIStroke", Button)
-    BtnStroke.Color = Color3.fromRGB(35, 35, 40)
+    BtnStroke.Color = Color3.fromRGB(38, 38, 44)
     BtnStroke.Thickness = 1
 
     local Label = Instance.new("TextLabel", Button)
     Label.Size = UDim2.new(0.7, 0, 1, 0)
-    Label.Position = UDim2.new(0, 8, 0, 0)
+    Label.Position = UDim2.new(0, 12, 0, 0)
     Label.Text = texto
     Label.Font = Enum.Font.GothamMedium
-    Label.TextSize = 10
-    Label.TextColor3 = Color3.fromRGB(190, 190, 200)
+    Label.TextSize = 12
+    Label.TextColor3 = Color3.fromRGB(200, 200, 210)
     Label.TextXAlignment = Enum.TextXAlignment.Left
     Label.BackgroundTransparency = 1
 
     local StatusDot = Instance.new("Frame", Button)
-    StatusDot.Size = UDim2.new(0, 5, 0, 5)
-    StatusDot.Position = UDim2.new(1, -14, 0.5, -2.5)
+    StatusDot.Size = UDim2.new(0, 8, 0, 8)
+    StatusDot.Position = UDim2.new(1, -20, 0.5, -4)
     StatusDot.BackgroundColor3 = Color3.fromRGB(55, 55, 62)
     StatusDot.BorderSizePixel = 0
     Instance.new("UICorner", StatusDot).CornerRadius = UDim.new(1, 0)
@@ -321,13 +326,13 @@ local function CriarBotaoLinear(texto, callback)
         else
             Button.BackgroundColor3 = Color3.fromRGB(25, 25, 28)
             StatusDot.BackgroundColor3 = Color3.fromRGB(55, 55, 62)
-            BtnStroke.Color = Color3.fromRGB(35, 35, 40)
+            BtnStroke.Color = Color3.fromRGB(38, 38, 44)
         end
         callback(ativado)
     end)
 end
 
--- INICIALIZAÇÃO DOS BOTÕES
+-- INICIALIZAÇÃO
 CriarBotaoLinear("Fly", function(s)
     FlyAtivado = s
     if s then AtivarVoo() else DesativarVoo() end
